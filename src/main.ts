@@ -26,7 +26,7 @@ app.innerHTML = `
   <main class="page">
     <header class="header">
       <h1 class="title">Tone Generator</h1>
-      <p class="subtitle">Choose a note (e.g. C3) and play it using your browser’s native audio APIs.</p>
+      <p class="subtitle">Choose a note (e.g. C3) and play it.</p>
     </header>
 
     <section class="panel" aria-label="Tone controls">
@@ -49,11 +49,9 @@ app.innerHTML = `
       </div>
 
       <div class="actions">
-        <button id="play" type="button" class="primary">Play</button>
-        <button id="stop" type="button">Stop</button>
+        <button id="play-toggle" type="button" class="primary">Play</button>
         <div class="readout" role="status" aria-live="polite">
           <div><span class="readout-label">Frequency</span> <span id="freq">—</span></div>
-          <div><span class="readout-label">MIDI</span> <span id="midi">—</span></div>
         </div>
       </div>
 
@@ -94,19 +92,11 @@ const volumeLabelEl = requireElement(
 	(el): el is HTMLSpanElement => el instanceof HTMLSpanElement,
 );
 const playEl = requireElement(
-	"#play",
-	(el): el is HTMLButtonElement => el instanceof HTMLButtonElement,
-);
-const stopEl = requireElement(
-	"#stop",
+	"#play-toggle",
 	(el): el is HTMLButtonElement => el instanceof HTMLButtonElement,
 );
 const freqEl = requireElement(
 	"#freq",
-	(el): el is HTMLSpanElement => el instanceof HTMLSpanElement,
-);
-const midiEl = requireElement(
-	"#midi",
 	(el): el is HTMLSpanElement => el instanceof HTMLSpanElement,
 );
 const errorEl = requireElement(
@@ -143,17 +133,17 @@ function setError(message: string): void {
 	errorEl.style.display = message ? "block" : "none";
 }
 
-function setReadout(
-	parsed: { frequencyHz: number; midi: number } | null,
-): void {
+function setReadout(parsed: { frequencyHz: number } | null): void {
 	if (!parsed) {
 		freqEl.textContent = "—";
-		midiEl.textContent = "—";
 		return;
 	}
 
 	freqEl.textContent = `${toFixedSmart(parsed.frequencyHz)} Hz`;
-	midiEl.textContent = String(parsed.midi);
+}
+
+function syncPlayButtonLabel(): void {
+	playEl.textContent = engine.isPlaying ? "Stop" : "Play";
 }
 
 function refreshVolumeLabel(): void {
@@ -231,6 +221,12 @@ volumeEl.addEventListener("input", () => {
 });
 
 playEl.addEventListener("click", async () => {
+	if (engine.isPlaying) {
+		engine.stop();
+		syncPlayButtonLabel();
+		return;
+	}
+
 	const parsed = getParsedFromText();
 	if (!parsed) return;
 
@@ -239,22 +235,17 @@ playEl.addEventListener("click", async () => {
 		waveform: "sine",
 		volume: clamp(Number.parseFloat(volumeEl.value), 0, 1),
 	});
-});
-
-stopEl.addEventListener("click", () => {
-	engine.stop();
+	syncPlayButtonLabel();
 });
 
 window.addEventListener("keydown", (e) => {
 	if (e.key === " ") {
 		e.preventDefault();
-		if (engine.isPlaying) {
-			engine.stop();
-		} else {
-			playEl.click();
-		}
+		playEl.click();
 	}
 });
+
+syncPlayButtonLabel();
 
 refreshVolumeLabel();
 getParsedFromText();
