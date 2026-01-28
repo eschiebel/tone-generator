@@ -21,8 +21,29 @@ const DEFAULT_OCTAVE = 3;
 app.innerHTML = `
   <main class="page">
     <header class="header">
-      <h1 class="title">Tone Generator</h1>
-      <p class="subtitle">Choose a note (e.g. C3) and play it.</p>
+      <div class="title">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="Sine wave icon"
+        >
+          <path
+            d="M2 12
+               C4 6, 8 6, 10 12
+               C12 18, 16 18, 18 12
+               C20 6, 24 6, 26 12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        <h1 class="title">Tone Generator</h1>
+      </div>
+        <p class="subtitle">Choose a note (e.g. C3) and play it.</p>
     </header>
 
     <section class="panel" aria-label="Tone controls">
