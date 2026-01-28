@@ -10,10 +10,6 @@ if (!app) {
 
 const engine = new AudioEngine();
 
-function clamp(n: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, n));
-}
-
 function toFixedSmart(n: number): string {
 	if (n >= 100) return n.toFixed(1);
 	if (n >= 10) return n.toFixed(2);
@@ -30,7 +26,7 @@ app.innerHTML = `
     </header>
 
     <section class="panel" aria-label="Tone controls">
-      <div class="grid">
+      <div>
         <label class="field">
           <span class="label">Note</span>
           <div class="note-row">
@@ -39,12 +35,6 @@ app.innerHTML = `
             <input id="noteText" class="control" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Note text" />
           </div>
           <span class="hint">Accepted: C3, F#4, Bb2</span>
-        </label>
-
-        <label class="field">
-          <span class="label">Volume</span>
-          <input id="volume" class="control" type="range" min="0" max="1" step="0.01" />
-          <span id="volumeLabel" class="hint"></span>
         </label>
       </div>
 
@@ -83,14 +73,6 @@ const noteTextEl = requireElement(
 	"#noteText",
 	(el): el is HTMLInputElement => el instanceof HTMLInputElement,
 );
-const volumeEl = requireElement(
-	"#volume",
-	(el): el is HTMLInputElement => el instanceof HTMLInputElement,
-);
-const volumeLabelEl = requireElement(
-	"#volumeLabel",
-	(el): el is HTMLSpanElement => el instanceof HTMLSpanElement,
-);
 const playEl = requireElement(
 	"#play-toggle",
 	(el): el is HTMLButtonElement => el instanceof HTMLButtonElement,
@@ -106,10 +88,19 @@ const errorEl = requireElement(
 
 const OCTAVES = Array.from({ length: 9 }, (_, i) => i);
 
+const SHARP_TO_FLAT: Partial<Record<(typeof NOTE_NAMES)[number], string>> = {
+	"C#": "Db",
+	"D#": "Eb",
+	"F#": "Gb",
+	"G#": "Ab",
+	"A#": "Bb",
+};
+
 for (const n of NOTE_NAMES) {
 	const opt = document.createElement("option");
 	opt.value = n;
-	opt.textContent = n;
+	const flat = SHARP_TO_FLAT[n];
+	opt.textContent = flat ? `${n} / ${flat}` : n;
 	noteNameEl.appendChild(opt);
 }
 
@@ -126,7 +117,6 @@ noteTextEl.value = buildNoteString(
 	noteNameEl.value as (typeof NOTE_NAMES)[number],
 	DEFAULT_OCTAVE,
 );
-volumeEl.value = "0.8";
 
 function setError(message: string): void {
 	errorEl.textContent = message;
@@ -144,11 +134,6 @@ function setReadout(parsed: { frequencyHz: number } | null): void {
 
 function syncPlayButtonLabel(): void {
 	playEl.textContent = engine.isPlaying ? "Stop" : "Play";
-}
-
-function refreshVolumeLabel(): void {
-	const v = clamp(Number.parseFloat(volumeEl.value), 0, 1);
-	volumeLabelEl.textContent = `${Math.round(v * 100)}%`;
 }
 
 function getParsedFromText(): {
@@ -213,13 +198,6 @@ noteTextEl.addEventListener("input", () => {
 	}
 });
 
-volumeEl.addEventListener("input", () => {
-	refreshVolumeLabel();
-	if (engine.isPlaying) {
-		engine.update({ volume: clamp(Number.parseFloat(volumeEl.value), 0, 1) });
-	}
-});
-
 playEl.addEventListener("click", async () => {
 	if (engine.isPlaying) {
 		engine.stop();
@@ -233,7 +211,7 @@ playEl.addEventListener("click", async () => {
 	await engine.start({
 		frequencyHz: parsed.frequencyHz,
 		waveform: "sine",
-		volume: clamp(Number.parseFloat(volumeEl.value), 0, 1),
+		volume: 1,
 	});
 	syncPlayButtonLabel();
 });
@@ -246,6 +224,4 @@ window.addEventListener("keydown", (e) => {
 });
 
 syncPlayButtonLabel();
-
-refreshVolumeLabel();
 getParsedFromText();
